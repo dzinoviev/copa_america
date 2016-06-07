@@ -11,16 +11,20 @@ soup = bs4.BeautifulSoup(html, 'html5lib')
 X, _, Y = zip(*[(list(x.strings)[1].split() if len(list(x.strings)) > 1 
                  else 3 * [float("nan")]) for x 
                 in list(soup.find_all("div", class_='sco'))])
+X = pd.Series(X).replace("?", float("nan")).astype(float)
+Y = pd.Series(Y).replace("?", float("nan")).astype(float)
 
 # Extract the team names and com
-team1 = [x.string.strip() for x in soup.find_all("div", class_='ply tright name')]
-team2 = [x.string.strip() for x in soup.find_all("div", class_='ply name')]
-
-# Combine the data into a list
-data = [ team1, team2, list(X), list(Y)]
+team1 = pd.Series([x.string.strip() for x in 
+                   soup.find_all("div", class_='ply tright name')])
+team2 = pd.Series([x.string.strip() for x in 
+                   soup.find_all("div", class_='ply name')])
 
 # Create and decorate a dataframe
-df = pd.DataFrame(data).T
-df.columns = ("team1", "team2", "score1", "score2")
+df = pd.DataFrame({"team1" : team1, "team2" : team2, 
+                   "score1" : X, "score2" : Y})
+
 df = df.set_index(["team1", "team2"]).sort_index()
-print(df)
+df["diff"] = df["score1"] - df["score2"]
+
+print(df.dropna().astype(int))
